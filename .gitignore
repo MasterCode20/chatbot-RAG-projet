@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 data/*
 !.gitkeep
+
+chroma_db/
+
+backend/chroma_db/
