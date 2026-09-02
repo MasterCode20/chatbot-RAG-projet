@@ -1,0 +1,7 @@
+streamlit==1.42.0
+langchain>=0.3.19
+langchain-community>=0.3.19
+langchain-groq==0.2.1
+faiss-cpu>=1.9.0
+pypdf==5.1.0
+python-dotenv==1.0.1
