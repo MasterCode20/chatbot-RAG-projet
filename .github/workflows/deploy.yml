@@ -30,8 +30,12 @@ jobs:
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
 
             # 3. Nettoyage du cache Docker sur la VM pour libérer l'espace disque
+
             sudo docker builder prune -a -f
             sudo docker image prune -f
 
-            # 4. Rebuild et relancement
+            # Arrêter proprement l'ancienne version pour libérer les ports
+            sudo docker compose down
+
+            # Construire et lancer la nouvelle version
             sudo docker compose up -d --build
