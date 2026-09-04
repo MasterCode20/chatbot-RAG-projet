@@ -8,6 +8,8 @@ services:
     container_name: rag-backend
     ports:
       - "8000:8000"
+    env_file:
+      - .env # <-- AJOUT ICI : Injection sécurisée des secrets de la VM vers le conteneur
     volumes:
       - ./backend/chroma_db:/app/chroma_db # Persistance de la base vectorielle
       - ./backend/data:/app/data # Persistance des documents uploadés
