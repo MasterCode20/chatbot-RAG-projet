@@ -7,7 +7,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ class RAGEngine:
     def __init__(self):
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         
-        # --- MODIFICATION 1 : S'adapter à la CI/CD ---
+        # --- S'adapter à la CI/CD ---
         # On lit la variable OPENAI_API_KEY (qui contient votre clé Groq injectée par GitHub)
         self.groq_api_key = os.getenv("OPENAI_API_KEY") 
         
@@ -46,36 +47,39 @@ class RAGEngine:
                 print(f"-> Erreur lors du chargement de la base persistante : {e}")
 
     def _setup_chain(self):
-            """Configure la chaîne RAG avec le retriever actuel."""
-            
-            if not self.vectorstore:
-                print("-> _setup_chain annulé : vectorstore manquant.")
-                return
-            if not self.llm:
-                print("-> _setup_chain annulé : LLM manquant (clé API non chargée).")
-                return
-            
-            retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
-            
-            # --- NOUVEAU PROMPT STORYTELLING ---
-            system_prompt = (
-                "Tu es SN-Career-AI, un coach de carrière expert et un analyseur ATS impitoyable mais ultra-constructif. "
-                "Ton objectif est d'aider le candidat à décrocher des entretiens en optimisant son profil. "
-                "Utilise le contexte fourni (le CV du candidat) pour répondre à la requête de l'utilisateur (qui est souvent une offre d'emploi ou une question de préparation). "
-                "Sois direct, professionnel, et structure toujours tes réponses avec : "
-                "1. Un score ou avis de compatibilité clair. "
-                "2. Les points forts du CV pour ce poste. "
-                "3. Les lacunes à combler ou les mots-clés manquants. "
-                "Si la question sort du cadre de la recherche d'emploi, ramène la conversation sur l'optimisation de carrière.\n\n"
-                "Contexte du CV :\n{context}"
-            )
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", "{input}"),
-            ])
+        """Configure la chaîne RAG avec le retriever actuel et la mémoire."""
+        
+        if not self.vectorstore:
+            print("-> _setup_chain annulé : vectorstore manquant.")
+            return
+        if not self.llm:
+            print("-> _setup_chain annulé : LLM manquant (clé API non chargée).")
+            return
+        
+        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+        
+        # --- PROMPT STORYTELLING ---
+        system_prompt = (
+            "Tu es SN-Career-AI, un coach de carrière expert et un analyseur ATS impitoyable mais ultra-constructif. "
+            "Ton objectif est d'aider le candidat à décrocher des entretiens en optimisant son profil. "
+            "Utilise le contexte fourni (le CV du candidat) pour répondre à la requête de l'utilisateur (qui est souvent une offre d'emploi ou une question de préparation). "
+            "Sois direct, professionnel, et structure toujours tes réponses avec : "
+            "1. Un score ou avis de compatibilité clair. "
+            "2. Les points forts du CV pour ce poste. "
+            "3. Les lacunes à combler ou les mots-clés manquants. "
+            "Si la question sort du cadre de la recherche d'emploi, ramène la conversation sur l'optimisation de carrière.\n\n"
+            "Contexte du CV :\n{context}"
+        )
+        
+        # Le MessagesPlaceholder indique à LangChain où insérer l'historique
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}"),
+        ])
 
-            question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
-            self.rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+        question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
+        self.rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
     def process_pdf(self, file_path: str):
         """Charge, découpe et indexe un nouveau PDF dans Chroma (avec persistance)."""
@@ -95,10 +99,23 @@ class RAGEngine:
         # Mettre à jour la chaîne RAG
         self._setup_chain()
 
-    def ask(self, question: str) -> str:
-        """Exécute la chaîne RAG pour répondre à la question."""
+    def ask(self, question: str, history: list = None) -> str:
+        """Exécute la chaîne RAG pour répondre à la question en tenant compte de l'historique."""
         if not self.rag_chain:
             raise ValueError("Aucun document n'a été indexé ou chargé. Veuillez d'abord charger un PDF.")
         
-        response = self.rag_chain.invoke({"input": question})
+        # Transformation de l'historique brut reçu de l'API en objets LangChain
+        chat_history = []
+        if history:
+            for msg in history:
+                if msg["role"] == "user":
+                    chat_history.append(HumanMessage(content=msg["content"]))
+                else:
+                    chat_history.append(AIMessage(content=msg["content"]))
+        
+        # On passe l'input et l'historique formaté à la chaîne
+        response = self.rag_chain.invoke({
+            "input": question,
+            "chat_history": chat_history
+        })
         return response["answer"]

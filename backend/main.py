@@ -1,5 +1,6 @@
 import os
 import shutil
+from typing import List, Dict
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from backend.rag_engine import RAGEngine
@@ -19,6 +20,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class QuestionRequest(BaseModel):
     question: str
+    history: List[Dict[str, str]] = []  # Ajout de l'historique conversationnel
 
 
 class AnswerResponse(BaseModel):
@@ -49,7 +51,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 @app.post("/chat", response_model=AnswerResponse)
 async def chat(request: QuestionRequest):
     try:
-        answer = rag_service.ask(request.question)
+        # On passe la question ET l'historique au moteur RAG
+        answer = rag_service.ask(request.question, request.history)
         return AnswerResponse(answer=answer)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
