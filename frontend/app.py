@@ -1,7 +1,10 @@
 import streamlit as st
 import requests
 
-API_URL = "http://158.178.197.5:8000"
+import os
+
+# Récupère l'URL du backend depuis l'environnement, ou utilise le réseau interne par défaut
+API_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 
 st.set_page_config(page_title="Assistant RAG Enterprise", page_icon="🤖")
 st.title("📄 Assistant Documentaire Intelligent (RAG API)")
