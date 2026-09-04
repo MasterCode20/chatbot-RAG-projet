@@ -1,8 +1,19 @@
 import streamlit as st
 import api_service
 
-# Configuration de la page
-st.set_page_config(page_title="SN-Career-AI | Votre Coach", page_icon="🚀", layout="centered")
+# Configuration de la page (Le logo devient le "Favicon" dans l'onglet du navigateur)
+st.set_page_config(
+    page_title="SN-Career-AI | Votre Coach", 
+    page_icon="frontend/assets/logo.png", 
+    layout="centered"
+)
+
+# Le logo de la barre latérale (Design natif SaaS)
+try:
+    # Affiche le logo en haut à gauche du menu de navigation
+    st.logo("frontend/assets/logo.png")
+except AttributeError:
+    pass
 
 # Initialisation de la mémoire de session
 if "messages" not in st.session_state:
@@ -33,9 +44,20 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun() # Rafraîchit l'interface instantanément
 
-# --- PAGE PRINCIPALE (Chat) ---
-st.title("🚀 SN-Career-AI")
+# --- PAGE PRINCIPALE (En-tête et Chat) ---
+# Création de colonnes pour aligner l'image et le titre sur la même ligne
+col1, col2 = st.columns([1, 7])
+
+with col1:
+    # Affichage du logo avec une largeur fixe pour un rendu net
+    st.image("frontend/assets/logo.png", width=70) 
+
+with col2:
+    # Le style CSS compense le décalage naturel de Streamlit pour aligner le texte au centre du logo
+    st.markdown("<h1 style='margin-top: -15px;'>SN-Career-AI</h1>", unsafe_allow_html=True)
+
 st.markdown("Échangez en direct avec votre coach de carrière virtuel. Posez des questions sur vos compétences ou analysez une offre d'emploi cible.")
+st.divider()
 
 # Vérification silencieuse du backend
 if not api_service.check_health():
