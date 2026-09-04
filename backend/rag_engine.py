@@ -14,7 +14,11 @@ load_dotenv()
 class RAGEngine:
     def __init__(self):
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        
+        # --- MODIFICATION 1 : S'adapter à la CI/CD ---
+        # On lit la variable OPENAI_API_KEY (qui contient votre clé Groq injectée par GitHub)
+        self.groq_api_key = os.getenv("OPENAI_API_KEY") 
+        
         self.persist_directory = "./chroma_db"
         self.vectorstore = None
         self.rag_chain = None
@@ -22,6 +26,7 @@ class RAGEngine:
         if self.groq_api_key:
             self.llm = ChatGroq(model_name="openai/gpt-oss-120b", groq_api_key=self.groq_api_key)
         else:
+            print("⚠️ ATTENTION : Aucune clé API trouvée dans l'environnement.")
             self.llm = None
 
         # Charger la base vectorielle existante sur disque si elle y est déjà
@@ -42,7 +47,13 @@ class RAGEngine:
 
     def _setup_chain(self):
         """Configure la chaîne RAG avec le retriever actuel."""
-        if not self.vectorstore or not self.llm:
+        
+        # --- MODIFICATION 2 : Logs de débogage ---
+        if not self.vectorstore:
+            print("-> _setup_chain annulé : vectorstore manquant.")
+            return
+        if not self.llm:
+            print("-> _setup_chain annulé : LLM manquant (clé API non chargée).")
             return
         
         retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
