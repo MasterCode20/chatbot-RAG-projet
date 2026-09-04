@@ -3,7 +3,7 @@ name: DevSecOps Deploy to Oracle VM
 on:
   push:
     branches:
-      - main # Le déploiement se lance à chaque push sur la branche main
+      - main
 
 jobs:
   deploy:
@@ -22,12 +22,15 @@ jobs:
           script: |
             cd ~/chatbot-RAG-projet
 
-            # 1. Mise à jour du code depuis le repo (sans les secrets)
+            # 1. Récupération du code
             git pull origin main
 
-            # 2. Injection sécurisée des secrets dans un fichier .env local à la VM
-            # Ce fichier ne sera jamais versionné sur Git
+            # 2. Injection du secret dans le .env local à la VM
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
 
-            # 3. Reconstruction et redémarrage des conteneurs
+            # 3. Nettoyage du cache Docker sur la VM pour libérer l'espace disque
+            sudo docker builder prune -a -f
+            sudo docker image prune -f
+
+            # 4. Rebuild et relancement
             sudo docker compose up -d --build
