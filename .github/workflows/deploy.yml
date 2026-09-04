@@ -24,7 +24,8 @@ jobs:
             cd ~/chatbot-RAG-projet
 
             # 1. Récupération du code
-            git pull origin main
+            git fetch --all
+            git reset --hard origin/main
 
             # 2. Injection du secret dans le .env local à la VM
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
