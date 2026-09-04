@@ -19,6 +19,7 @@ jobs:
           username: ${{ secrets.HOST_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: OPENAI_API_KEY
+          command_timeout: 30m
           script: |
             cd ~/chatbot-RAG-projet
 
