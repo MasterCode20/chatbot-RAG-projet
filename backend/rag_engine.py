@@ -46,31 +46,36 @@ class RAGEngine:
                 print(f"-> Erreur lors du chargement de la base persistante : {e}")
 
     def _setup_chain(self):
-        """Configure la chaîne RAG avec le retriever actuel."""
-        
-        # --- MODIFICATION 2 : Logs de débogage ---
-        if not self.vectorstore:
-            print("-> _setup_chain annulé : vectorstore manquant.")
-            return
-        if not self.llm:
-            print("-> _setup_chain annulé : LLM manquant (clé API non chargée).")
-            return
-        
-        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
-        
-        system_prompt = (
-            "Vous êtes un assistant technique expert.\n"
-            "Utilisez les contextes suivants pour répondre à la question posée.\n"
-            "Si vous ne connaissez pas la réponse, dites clairement que vous ne savez pas.\n\n"
-            "{context}"
-        )
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{input}"),
-        ])
+            """Configure la chaîne RAG avec le retriever actuel."""
+            
+            if not self.vectorstore:
+                print("-> _setup_chain annulé : vectorstore manquant.")
+                return
+            if not self.llm:
+                print("-> _setup_chain annulé : LLM manquant (clé API non chargée).")
+                return
+            
+            retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+            
+            # --- NOUVEAU PROMPT STORYTELLING ---
+            system_prompt = (
+                "Tu es SN-Career-AI, un coach de carrière expert et un analyseur ATS impitoyable mais ultra-constructif. "
+                "Ton objectif est d'aider le candidat à décrocher des entretiens en optimisant son profil. "
+                "Utilise le contexte fourni (le CV du candidat) pour répondre à la requête de l'utilisateur (qui est souvent une offre d'emploi ou une question de préparation). "
+                "Sois direct, professionnel, et structure toujours tes réponses avec : "
+                "1. Un score ou avis de compatibilité clair. "
+                "2. Les points forts du CV pour ce poste. "
+                "3. Les lacunes à combler ou les mots-clés manquants. "
+                "Si la question sort du cadre de la recherche d'emploi, ramène la conversation sur l'optimisation de carrière.\n\n"
+                "Contexte du CV :\n{context}"
+            )
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", "{input}"),
+            ])
 
-        question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
-        self.rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+            question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
+            self.rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
     def process_pdf(self, file_path: str):
         """Charge, découpe et indexe un nouveau PDF dans Chroma (avec persistance)."""
