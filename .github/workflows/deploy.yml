@@ -31,9 +31,6 @@ jobs:
 
             # 3. Nettoyage du cache Docker sur la VM pour libérer l'espace disque
 
-            sudo docker builder prune -a -f
-            sudo docker image prune -f
-
             # Arrêter proprement l'ancienne version pour libérer les ports
             sudo docker compose down
 
