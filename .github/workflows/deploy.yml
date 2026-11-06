@@ -37,9 +37,12 @@ jobs:
             # 2. Mettre à jour dynamiquement le fichier de secret K8s avec la vraie clé API
             sed -i "s|GROQ_API_KEY: \".*\"|GROQ_API_KEY: \"$GROQ_API_KEY\"|g" k8s/secrets.yaml
 
-            # 3. Appliquer les manifestes sur Kubernetes (le namespace sera créé en premier par namespace.yaml)
-            sudo kubectl apply -f k8s/
+            # 3. Créer d'abord le Namespace et attendre qu'il soit actif
+            sudo kubectl apply -f k8s/namespace.yaml
 
-            # 4. Forcer le redémarrage des déploiements pour prendre en compte les modifications
+            # 4. Appliquer le reste des manifestes Kubernetes
+            sudo kubectl apply -f k8s/secrets.yaml -f k8s/backend-deployment.yaml -f k8s/frontend-deployment.yaml
+
+            # 5. Forcer le redémarrage des déploiements pour prendre en compte les modifications
             sudo kubectl rollout restart deployment/sn-backend -n sn-career-ai
             sudo kubectl rollout restart deployment/sn-frontend -n sn-career-ai
