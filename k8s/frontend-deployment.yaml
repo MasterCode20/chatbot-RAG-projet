@@ -15,15 +15,33 @@ spec:
       labels:
         app: sn-frontend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: daivecode/sn-frontend:v1.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8501
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: BACKEND_URL
               value: "http://sn-backend-svc.sn-career-ai.svc.cluster.local:8000"
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
