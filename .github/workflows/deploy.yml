@@ -24,20 +24,22 @@ jobs:
           envs: GROQ_API_KEY
           command_timeout: 30m
           script: |
-            # 1. Mettre à jour le code source sur le master
-            mkdir -p ~/mon-projet-rag
-            cd ~/mon-projet-rag
+            # 1. Cloner ou mettre à jour le projet proprement
+            if [ ! -d ~/mon-projet-rag/.git ]; then
+              rm -rf ~/mon-projet-rag
+              git clone https://github.com/MasterCode20/chatbot-RAG-projet.git ~/mon-projet-rag
+            fi
 
-            # (Si le repo n'est pas encore cloné en SSH sur la VM, tu peux faire un git pull ou copier les fichiers)
+            cd ~/mon-projet-rag
             git fetch --all
             git reset --hard origin/main
 
             # 2. Mettre à jour dynamiquement le fichier de secret K8s avec la vraie clé API
             sed -i "s|GROQ_API_KEY: \".*\"|GROQ_API_KEY: \"$GROQ_API_KEY\"|g" k8s/secrets.yaml
 
-            # 3. Appliquer les manifestes sur Kubernetes
+            # 3. Appliquer les manifestes sur Kubernetes (le namespace sera créé en premier par namespace.yaml)
             sudo kubectl apply -f k8s/
 
-            # 4. Forcer le redémarrage des déploiements pour prendre en compte les dernières modifications d'images
+            # 4. Forcer le redémarrage des déploiements pour prendre en compte les modifications
             sudo kubectl rollout restart deployment/sn-backend -n sn-career-ai
             sudo kubectl rollout restart deployment/sn-frontend -n sn-career-ai
