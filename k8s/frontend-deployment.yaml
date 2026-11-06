@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sn-frontend
+  namespace: sn-career-ai
+  labels:
+    app: sn-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sn-frontend
+  template:
+    metadata:
+      labels:
+        app: sn-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: votre-dockerhub/sn-frontend:v1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+          env:
+            - name: BACKEND_URL
+              value: "http://sn-backend-svc.sn-career-ai.svc.cluster.local:8000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sn-frontend-svc
+  namespace: sn-career-ai
+spec:
+  selector:
+    app: sn-frontend
+  ports:
+    - protocol: TCP
+      port: 8501
+      targetPort: 8501
+  type: NodePort

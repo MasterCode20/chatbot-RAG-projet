@@ -1,4 +1,4 @@
-name: DevSecOps Deploy to Oracle VM
+name: DevSecOps Deploy to K3s Cluster
 
 on:
   push:
@@ -10,30 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Déploiement sécurisé via SSH
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Déploiement sécurisé sur le cluster K3s via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         with:
           host: ${{ secrets.HOST_IP }}
           username: ${{ secrets.HOST_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: OPENAI_API_KEY
+          envs: GROQ_API_KEY
           command_timeout: 30m
           script: |
-            cd ~/chatbot-RAG-projet
+            # 1. Mettre à jour le code source sur le master
+            mkdir -p ~/mon-projet-rag
+            cd ~/mon-projet-rag
 
-            # 1. Récupération du code
+            # (Si le repo n'est pas encore cloné en SSH sur la VM, tu peux faire un git pull ou copier les fichiers)
             git fetch --all
             git reset --hard origin/main
 
-            # 2. Injection du secret dans le .env local à la VM
-            echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
+            # 2. Mettre à jour dynamiquement le fichier de secret K8s avec la vraie clé API
+            sed -i "s|GROQ_API_KEY: \".*\"|GROQ_API_KEY: \"$GROQ_API_KEY\"|g" k8s/secrets.yaml
 
-            # 3. Nettoyage du cache Docker sur la VM pour libérer l'espace disque
+            # 3. Appliquer les manifestes sur Kubernetes
+            sudo kubectl apply -f k8s/
 
-            # Arrêter proprement l'ancienne version pour libérer les ports
-            sudo docker compose down
-
-            # Construire et lancer la nouvelle version
-            sudo docker compose up -d --build
+            # 4. Forcer le redémarrage des déploiements pour prendre en compte les dernières modifications d'images
+            sudo kubectl rollout restart deployment/sn-backend -n sn-career-ai
+            sudo kubectl rollout restart deployment/sn-frontend -n sn-career-ai
