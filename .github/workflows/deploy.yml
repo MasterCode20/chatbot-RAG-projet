@@ -22,14 +22,16 @@ jobs:
       - name: Builder et pusher l'image Backend
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/sn-backend:v1.0.0
 
       - name: Builder et pusher l'image Frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
+          file: ./frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/sn-frontend:v1.0.0
 
