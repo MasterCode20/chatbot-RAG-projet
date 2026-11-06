@@ -9,6 +9,7 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_huggingface import HuggingFaceEmbeddings
 
 load_dotenv()
 
@@ -18,7 +19,8 @@ class RAGEngine:
         
         # --- S'adapter à la CI/CD ---
         # On lit la variable OPENAI_API_KEY (qui contient votre clé Groq injectée par GitHub)
-        self.groq_api_key = os.getenv("OPENAI_API_KEY") 
+   
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         
         self.persist_directory = "./chroma_db"
         self.vectorstore = None
