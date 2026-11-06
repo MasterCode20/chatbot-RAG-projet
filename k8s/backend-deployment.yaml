@@ -21,7 +21,7 @@ spec:
         fsGroup: 10001
       containers:
         - name: backend
-          image: votre-dockerhub/sn-backend:v1.0.0
+          image: daivecode/sn-backend:v1.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

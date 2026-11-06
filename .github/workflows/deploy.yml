@@ -1,4 +1,4 @@
-name: DevSecOps Deploy to K3s Cluster
+name: DevSecOps Build & Deploy to K3s
 
 on:
   push:
@@ -6,12 +6,32 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
+
+      - name: Connexion à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Builder et pusher l'image Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/sn-backend:v1.0.0
+
+      - name: Builder et pusher l'image Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/sn-frontend:v1.0.0
 
       - name: Déploiement sécurisé sur le cluster K3s via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -24,7 +44,7 @@ jobs:
           envs: GROQ_API_KEY
           command_timeout: 30m
           script: |
-            # 1. Cloner ou mettre à jour le projet proprement
+            # 1. Cloner ou mettre à jour le projet proprement sur le master
             if [ ! -d ~/mon-projet-rag/.git ]; then
               rm -rf ~/mon-projet-rag
               git clone https://github.com/MasterCode20/chatbot-RAG-projet.git ~/mon-projet-rag
@@ -37,12 +57,12 @@ jobs:
             # 2. Mettre à jour dynamiquement le fichier de secret K8s avec la vraie clé API
             sed -i "s|GROQ_API_KEY: \".*\"|GROQ_API_KEY: \"$GROQ_API_KEY\"|g" k8s/secrets.yaml
 
-            # 3. Créer d'abord le Namespace et attendre qu'il soit actif
+            # 3. Créer d'abord le Namespace
             sudo kubectl apply -f k8s/namespace.yaml
 
-            # 4. Appliquer le reste des manifestes Kubernetes
+            # 4. Appliquer les manifestes Kubernetes
             sudo kubectl apply -f k8s/secrets.yaml -f k8s/backend-deployment.yaml -f k8s/frontend-deployment.yaml
 
-            # 5. Forcer le redémarrage des déploiements pour prendre en compte les modifications
+            # 5. Forcer le redémarrage pour télécharger les nouvelles images Docker Hub
             sudo kubectl rollout restart deployment/sn-backend -n sn-career-ai
             sudo kubectl rollout restart deployment/sn-frontend -n sn-career-ai

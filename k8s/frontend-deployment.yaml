@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: votre-dockerhub/sn-frontend:v1.0.0
+          image: daivecode/sn-frontend:v1.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8501
